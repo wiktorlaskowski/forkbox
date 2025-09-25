@@ -19,117 +19,363 @@
 	<link rel="icon" type="image/png" sizes="32x32" href="/icon_32.png" />
 	<link rel="manifest" href="/manifest.webmanifest" />
 	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" rel="stylesheet" media="none" onload="if (this.media != 'all') this.media='all';" /> <!-- this is a trick to load CSS asynchronously. -->
-	<style type="text/css">
-		html {
-			background: var(--page-margin, black);
-			overflow-x: hidden;
-			font-size: large;
-			font-family: 'Roboto', sans-serif;
-			line-height: 1.3;
-			color: var(--primary-text, white);
-		}
-		body {
-			margin: auto;
-			overflow-x: hidden;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			align-content: center;
-		}
-		#beepboxEditorContainer {
-			min-height: 645px;
-			overflow: auto;
-			background: var(--editor-background, black);
-			width: 100%;
-			max-width: 710px;
-			padding-left: 30px;
-			padding-right: 30px;
-		}
-		#text-content {
-			overflow: auto;
-			background: var(--editor-background, black);
-			width: 100%;
-			max-width: 710px;
-			padding-left: 30px;
-			padding-right: 30px;
-		}
-		h1 {
-			font-size: 1.7rem;
-			text-align: center;
-			margin-top: 0.5em;
-			margin-bottom: 0.5em;
-			-webkit-text-stroke-width: 0;
-		}
-		h2 {
-			font-size: 1.5rem;
-			text-align: center;
-			margin-top: 0.5em;
-			margin-bottom: 0.5em;
-			-webkit-text-stroke-width: 0;
-		}
-		a {
-			color: var(--link-accent, #98f);
-		}
-		.donation form {
-			display: inline;
-		}
-		.donation input[type="submit"] {
-			-webkit-appearance: none;
-			appearance: none;
-			background: none;
-			border: none;
-			font-family: inherit;
-			font-size: inherit;
-			color: var(--link-accent, #98f);
-			text-decoration: underline;
-			cursor: pointer;
-			padding: 0;
-			margin: 0;
-		}
-		
-		/* wide screen */
-		@media (min-width: 711px) {
-			html {
-				width: 100%;
-			}
-			body {
-				width: 100%;
-			}
-			.column-container {
-				width: 710px;
-				display: flex;
-				gap: 25px;
-			}
-			.instructions-column {
-				min-width: 0;
-			}
-		}
-		
-		/* narrow screen */
-		@media (max-width: 710px) {
-			body {
-				width: 100%;
-			}
-			p, .donation {
-				margin: 1em 0.5em;
-			}
-			.column-container {
-				display: flex;
-				flex-direction: column;
-				align-items: center;
-			}
-		}
-	</style>
+	                <style type="text/css">
+                :root {
+                        color-scheme: dark;
+                        --page-background: radial-gradient(circle at top left, rgba(14, 116, 144, 0.6), transparent 55%), radial-gradient(circle at bottom right, rgba(59, 7, 100, 0.55), transparent 45%), #0b1120;
+                        --panel-background: rgba(15, 23, 42, 0.88);
+                        --surface-background: rgba(30, 41, 59, 0.92);
+                        --border-color: rgba(148, 163, 184, 0.18);
+                        --highlight: #38bdf8;
+                        --highlight-strong: #0ea5e9;
+                        --muted-text: rgba(226, 232, 240, 0.78);
+                        --primary-text: #f1f5f9;
+                        --card-shadow: 0 22px 45px rgba(8, 15, 26, 0.45);
+                        --radius-lg: 24px;
+                        --radius-md: 18px;
+                        --font-body: 'Roboto', sans-serif;
+                }
+
+                * {
+                        box-sizing: border-box;
+                }
+
+                body {
+                        margin: 0;
+                        min-height: 100vh;
+                        background: var(--page-background);
+                        color: var(--primary-text);
+                        font-size: 18px;
+                        font-family: var(--font-body);
+                        line-height: 1.5;
+                        display: flex;
+                        justify-content: center;
+                        padding: clamp(1.5rem, 4vw, 3rem) 1.5rem 4rem;
+                }
+
+                .page-wrapper {
+                        width: min(1100px, 100%);
+                        display: flex;
+                        flex-direction: column;
+                        gap: clamp(1.5rem, 3vw, 2.75rem);
+                }
+
+                .card {
+                        background: var(--panel-background);
+                        border-radius: var(--radius-lg);
+                        border: 1px solid var(--border-color);
+                        box-shadow: var(--card-shadow);
+                        backdrop-filter: blur(20px);
+                }
+
+                #editor-shell {
+                        display: flex;
+                        flex-direction: column;
+                        gap: clamp(1rem, 2vw, 1.75rem);
+                        padding: clamp(1.5rem, 3vw, 2.5rem);
+                }
+
+                #beepboxEditorContainer {
+                        min-height: 645px;
+                        flex: 1 1 auto;
+                        overflow: auto;
+                        background: var(--surface-background);
+                        border-radius: var(--radius-md);
+                        padding: clamp(1rem, 2.5vw, 1.8rem);
+                }
+
+                #text-content {
+                        padding: clamp(1.75rem, 3vw, 2.75rem);
+                }
+
+                #text-content section + section {
+                        margin-top: 2.5rem;
+                }
+
+                h1,
+                h2 {
+                        font-weight: 600;
+                        letter-spacing: 0.02em;
+                        text-align: center;
+                        margin: 0 0 1rem;
+                        color: var(--primary-text);
+                }
+
+                h1 {
+                        font-size: clamp(2rem, 2vw + 1.5rem, 2.6rem);
+                }
+
+                h2 {
+                        font-size: clamp(1.6rem, 1.5vw + 1.2rem, 2.1rem);
+                }
+
+                p {
+                        margin: 0 0 1.25rem;
+                        color: var(--muted-text);
+                }
+
+                a {
+                        color: var(--highlight);
+                        text-decoration: none;
+                        font-weight: 500;
+                }
+
+                a:hover,
+                a:focus {
+                        text-decoration: underline;
+                        color: var(--highlight-strong);
+                }
+
+                .donation {
+                        margin: 1.5rem 0 2rem;
+                        text-align: center;
+                }
+
+                .donation form {
+                        display: inline;
+                }
+
+                .donation input[type="submit"] {
+                        -webkit-appearance: none;
+                        appearance: none;
+                        background: none;
+                        border: none;
+                        font-family: inherit;
+                        font-size: inherit;
+                        color: var(--highlight);
+                        text-decoration: underline;
+                        cursor: pointer;
+                        padding: 0;
+                        margin: 0;
+                }
+
+                .editor-actions {
+                        display: flex;
+                        flex-direction: column;
+                        gap: clamp(1rem, 2vw, 1.5rem);
+                        background: rgba(15, 23, 42, 0.6);
+                        border: 1px solid rgba(148, 163, 184, 0.15);
+                        border-radius: var(--radius-md);
+                        padding: clamp(1rem, 2.5vw, 1.8rem);
+                }
+
+                .editor-actions h3 {
+                        margin: 0;
+                        font-size: 1.1rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.12em;
+                        color: rgba(226, 232, 240, 0.7);
+                }
+
+                .editor-controls {
+                        display: grid;
+                        gap: 1rem;
+                        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                        align-items: center;
+                }
+
+                .editor-actions .action-button {
+                        background: linear-gradient(135deg, rgba(14, 165, 233, 0.95), rgba(56, 189, 248, 0.85));
+                        border: none;
+                        border-radius: 999px;
+                        padding: 0.75rem 1.5rem;
+                        color: var(--primary-text);
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                        cursor: pointer;
+                        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+                        box-shadow: 0 14px 30px rgba(14, 165, 233, 0.25);
+                        justify-self: start;
+                }
+
+                .editor-actions .action-button.secondary {
+                        background: rgba(148, 163, 184, 0.18);
+                        box-shadow: none;
+                        border: 1px solid rgba(148, 163, 184, 0.3);
+                }
+
+                .editor-actions .action-button:disabled {
+                        opacity: 0.45;
+                        cursor: not-allowed;
+                        box-shadow: none;
+                        transform: none;
+                }
+
+                .editor-actions .action-button:not(:disabled):hover,
+                .editor-actions .action-button:not(:disabled):focus-visible {
+                        transform: translateY(-2px);
+                        box-shadow: 0 18px 36px rgba(14, 165, 233, 0.35);
+                }
+
+                .range-control {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.35rem;
+                        color: var(--muted-text);
+                        font-size: 0.95rem;
+                }
+
+                .range-control span strong {
+                        color: var(--primary-text);
+                }
+
+                .range-control input[type="range"] {
+                        -webkit-appearance: none;
+                        appearance: none;
+                        width: 100%;
+                        height: 6px;
+                        border-radius: 999px;
+                        background: rgba(148, 163, 184, 0.25);
+                        overflow: hidden;
+                }
+
+                .range-control input[type="range"]::-webkit-slider-thumb {
+                        -webkit-appearance: none;
+                        appearance: none;
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 50%;
+                        background: var(--highlight);
+                        box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25);
+                }
+
+                .range-control input[type="range"]::-moz-range-thumb {
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 50%;
+                        background: var(--highlight);
+                        border: none;
+                        box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25);
+                }
+
+                .extend-controls {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 0.75rem;
+                        align-items: center;
+                        font-size: 0.95rem;
+                        color: var(--muted-text);
+                }
+
+                .extend-controls input[type="number"] {
+                        width: 4.5rem;
+                        padding: 0.5rem 0.75rem;
+                        border-radius: 12px;
+                        border: 1px solid rgba(148, 163, 184, 0.35);
+                        background: rgba(15, 23, 42, 0.9);
+                        color: var(--primary-text);
+                        font: inherit;
+                }
+
+                .extend-controls .hint {
+                        font-size: 0.85rem;
+                        opacity: 0.85;
+                }
+
+                .editor-actions p {
+                        margin: 0;
+                        font-size: 0.9rem;
+                        color: rgba(226, 232, 240, 0.65);
+                }
+
+                .column-container {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 1.75rem;
+                }
+
+                @media (min-width: 900px) {
+                        body {
+                                padding-left: 2.5rem;
+                                padding-right: 2.5rem;
+                        }
+
+                        .column-container {
+                                flex-direction: row;
+                                align-items: flex-start;
+                        }
+
+                        .instructions-column {
+                                min-width: 0;
+                                flex: 1 1 0;
+                        }
+                }
+
+                @media (max-width: 640px) {
+                        body {
+                                padding: 1.5rem 1rem 3rem;
+                                font-size: 16px;
+                        }
+
+                        #editor-shell,
+                        #text-content {
+                                padding: 1.25rem;
+                        }
+
+                        .editor-controls {
+                                grid-template-columns: 1fr;
+                        }
+                }
+
+                #editor-shell.is-fullscreen {
+                        width: 100vw;
+                        height: 100vh;
+                        max-width: none;
+                        border-radius: 0;
+                        box-shadow: none;
+                        border: none;
+                        padding: clamp(1rem, 3vw, 2rem);
+                }
+
+                #editor-shell.is-fullscreen .editor-actions {
+                        background: rgba(15, 23, 42, 0.8);
+                }
+
+                #editor-shell.is-fullscreen #beepboxEditorContainer {
+                        flex: 1 1 auto;
+                        height: 100%;
+                }
+        </style>
+
 </head>
 
 <body>
-	<div id="beepboxEditorContainer">
-		<noscript>
-			Sorry, BeepBox requires a JavaScript-enabled browser.
-		</noscript>
-	</div>
-	<div id="text-content">
-		<section>
+        <div class="page-wrapper">
+                <div id="editor-shell" class="card">
+                        <div id="beepboxEditorContainer">
+                                <noscript>
+                                        Sorry, BeepBox requires a JavaScript-enabled browser.
+                                </noscript>
+                        </div>
+                        <div class="editor-actions" id="editorActions">
+                                <h3>Quick Layout Controls</h3>
+                                <div class="editor-controls">
+                                        <button type="button" id="fullscreenToggle" class="action-button">Enter Full Screen</button>
+                                        <button type="button" id="addMelodyLayer" class="action-button secondary">Add Melody Layer</button>
+                                        <button type="button" id="addDrumLayer" class="action-button secondary">Add Drum Layer</button>
+                                        <label class="range-control" for="layerRange">
+                                                <span>Visible layers: <strong id="layerCount">4</strong></span>
+                                                <input type="range" id="layerRange" min="1" max="12" value="4" />
+                                        </label>
+                                        <label class="range-control" for="columnRange">
+                                                <span>Visible columns: <strong id="columnCount">16</strong></span>
+                                                <input type="range" id="columnRange" min="8" max="32" value="16" />
+                                        </label>
+                                        <div class="extend-controls">
+                                                <label for="extendAmount">Extend song by</label>
+                                                <input type="number" id="extendAmount" min="1" max="16" value="4" />
+                                                <button type="button" id="extendSongButton" class="action-button secondary">Add Bars</button>
+                                                <span class="hint">Total bars: <strong id="totalBars">16</strong></span>
+                                        </div>
+                                </div>
+                                <p>
+                                        Use these options to reveal more pattern layers, add new tracks, and quickly grow your composition.
+                                </p>
+                        </div>
+                </div>
+                <div id="text-content" class="card">
+                                </section>
 			<h1>
 				BeepBox
 			</h1>
@@ -155,7 +401,7 @@
 	
 		<div class="column-container">
 			<main class="instructions-column">
-				<section>
+                                </section>
 					<h2>
 						Instructions
 					</h2>
@@ -216,8 +462,8 @@
 					<p>
 						Want to see what people have made with BeepBox? Songs that were shared on Twitter prior to 2023-05-22 can now be browsed in <a href="https://twitter-archive.beepbox.co/" target="_blank">this interactive archive</a>!
 					</p>
-				</section>
-				<section>
+                                </section>
+                                <section>
 					<h2>
 						About
 					</h2>
@@ -239,65 +485,269 @@
 					<p>
 						You can download and use <a href="https://github.com/johnnesky/beepbox" target="_blank">the source code</a> under the MIT license. In particular, you can use the synth code <a href="synth_example.html" target="_blank">as demonstrated here</a> to play BeepBox songs in your own JavaScript projects!
 					</p>
-				<section>
+                                </section>
 			</main>
-		</div>
-	</div>
-	
-	<!--
+                </div>
+        </div>
+        </div>
+
+        <!--
 	Instead of loading js beepbox editor interface directly, test for browser support.
 	<script type="text/javascript" src="beepbox_editor.min.js"></script>
 	-->
-	<script type="text/javascript">
-		let editor;
-		
-		if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|android|ipad|playbook|silk/i.test(navigator.userAgent) ) {
-			document.getElementById("introduction").innerHTML = "BeepBox is an online tool for sketching and sharing instrumental music. Make sure that your volume is turned up, then press the play button!";
-			document.getElementById("keyboard-instructions").style.display = "none";
-			document.getElementById("mobile-instructions").style.display = "";
-			document.getElementById("bar-editing").innerHTML = "Tap the boxes to move to a different part of the song, or tap on the currently selected box to swap which pattern is played during that part of the song.";
-			document.getElementById("offline-instructions").innerHTML = 'You can use BeepBox when your device is offline if you put a shortcut to BeepBox on your home screen. <ul><li>Chrome: find the "Add to Home Screen" option in the ⋮ menu.</li><li>Firefox: find the "Add Page Shortcut" option in the ⋮ menu.</li><li>Safari: find the "Add to Home Screen" option in the bookmark menu.</li></ul>';
-		}
-		
-		function browserHasRequiredFeatures() {
-			"use strict";
-			if (window.AudioContext == undefined && window.webkitAudioContext == undefined) {
-				return false;
-			}
-			
-			try {
-				eval("class T {}");
-				eval("const a = () => 0");
-				eval("for (const a of []);");
-			} catch (error) {
-				return false;
-			}
-			
-			return true;
-		}
-		
-		if (browserHasRequiredFeatures()) {
-			// Go ahead and load js beepbox editor interface:
-			var fileref = document.createElement("script");
-			fileref.setAttribute("type", "text/javascript");
-			fileref.addEventListener("load", function(event) {
-				editor = new beepbox.SongEditor(document.getElementById("beepboxEditorContainer"));
-			});
-			fileref.setAttribute("src", "beepbox_editor.min.js");
-			document.head.appendChild(fileref);
-		} else {
-			document.getElementById("beepboxEditorContainer").innerHTML = "Sorry, BeepBox doesn't support your browser. Try a recent version of Chrome, Firefox, Edge, Safari, or Opera.";
-		}
-		
-		// If the page was loaded with an old song version that old versions of BeepBox support,
-		// update the links to the old versions so that they'll open the song.
-		if (/^#[1-6]/.test(location.hash)) {
-			document.getElementById("linkTo2_3").href += location.hash;
-		}
-		if (/^#[1-8]/.test(location.hash)) {
-			document.getElementById("linkTo3_0").href += location.hash;
-		}
-		
-	</script>
+	        <script type="text/javascript">
+                let editor;
+                const editorReadyCallbacks = [];
+
+                function onEditorReady(callback) {
+                        if (editor) {
+                                callback(editor);
+                        } else {
+                                editorReadyCallbacks.push(callback);
+                        }
+                }
+
+                function notifyEditorReady() {
+                        while (editorReadyCallbacks.length) {
+                                try {
+                                        const next = editorReadyCallbacks.shift();
+                                        if (next) next(editor);
+                                } catch (error) {
+                                        console.error(error);
+                                }
+                        }
+                }
+
+                setupEnhancementControls();
+
+                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|android|ipad|playbook|silk/i.test(navigator.userAgent) ) {
+                        document.getElementById("introduction").innerHTML = "BeepBox is an online tool for sketching and sharing instrumental music. Make sure that your volume is turned up, then press the play button!";
+                        document.getElementById("keyboard-instructions").style.display = "none";
+                        document.getElementById("mobile-instructions").style.display = "";
+                        document.getElementById("bar-editing").innerHTML = "Tap the boxes to move to a different part of the song, or tap on the currently selected box to swap which pattern is played during that part of the song.";
+                        document.getElementById("offline-instructions").innerHTML = 'You can use BeepBox when your device is offline if you put a shortcut to BeepBox on your home screen. <ul><li>Chrome: find the "Add to Home Screen" option in the ⋮ menu.</li><li>Firefox: find the "Add Page Shortcut" option in the ⋮ menu.</li><li>Safari: find the "Add to Home Screen" option in the bookmark menu.</li></ul>';
+                }
+
+                function browserHasRequiredFeatures() {
+                        "use strict";
+                        if (window.AudioContext == undefined && window.webkitAudioContext == undefined) {
+                                return false;
+                        }
+
+                        try {
+                                eval("class T {}");
+                                eval("const a = () => 0");
+                                eval("for (const a of []);");
+                        } catch (error) {
+                                return false;
+                        }
+
+                        return true;
+                }
+
+                if (browserHasRequiredFeatures()) {
+                        // Go ahead and load js beepbox editor interface:
+                        var fileref = document.createElement("script");
+                        fileref.setAttribute("type", "text/javascript");
+                        fileref.addEventListener("load", function(event) {
+                                editor = new beepbox.SongEditor(document.getElementById("beepboxEditorContainer"));
+                                editor.doc.trackVisibleBars = Math.max(editor.doc.trackVisibleBars, 24);
+                                editor.doc.trackVisibleChannels = Math.max(editor.doc.trackVisibleChannels, 6);
+                                editor.doc.notifier.changed();
+                                notifyEditorReady();
+                        });
+                        fileref.setAttribute("src", "beepbox_editor.min.js");
+                        document.head.appendChild(fileref);
+                } else {
+                        document.getElementById("beepboxEditorContainer").innerHTML = "Sorry, BeepBox doesn't support your browser. Try a recent version of Chrome, Firefox, Edge, Safari, or Opera.";
+                }
+
+                // If the page was loaded with an old song version that old versions of BeepBox support,
+                // update the links to the old versions so that they'll open the song.
+                if (/^#[1-6]/.test(location.hash)) {
+                        document.getElementById("linkTo2_3").href += location.hash;
+                }
+                if (/^#[1-8]/.test(location.hash)) {
+                        document.getElementById("linkTo3_0").href += location.hash;
+                }
+
+                function setupEnhancementControls() {
+                        const shell = document.getElementById("editor-shell");
+                        if (!shell) return;
+
+                        const fullscreenButton = document.getElementById("fullscreenToggle");
+                        const melodyButton = document.getElementById("addMelodyLayer");
+                        const drumButton = document.getElementById("addDrumLayer");
+                        const layerRange = document.getElementById("layerRange");
+                        const columnRange = document.getElementById("columnRange");
+                        const layerCount = document.getElementById("layerCount");
+                        const columnCount = document.getElementById("columnCount");
+                        const extendAmount = document.getElementById("extendAmount");
+                        const extendButton = document.getElementById("extendSongButton");
+                        const totalBars = document.getElementById("totalBars");
+
+                        const controls = [fullscreenButton, melodyButton, drumButton, layerRange, columnRange, extendAmount, extendButton];
+                        for (const control of controls) {
+                                control?.setAttribute("disabled", "true");
+                        }
+
+                        const updateFullScreenState = () => {
+                                const isFull = document.fullscreenElement === shell;
+                                shell.classList.toggle("is-fullscreen", isFull);
+                                if (fullscreenButton) {
+                                        fullscreenButton.textContent = isFull ? "Exit Full Screen" : "Enter Full Screen";
+                                }
+                        };
+
+                        fullscreenButton?.addEventListener("click", () => {
+                                if (document.fullscreenElement === shell) {
+                                        document.exitFullscreen();
+                                } else if (shell.requestFullscreen) {
+                                        shell.requestFullscreen();
+                                } else if (document.documentElement.requestFullscreen) {
+                                        document.documentElement.requestFullscreen();
+                                }
+                        });
+
+                        document.addEventListener("fullscreenchange", updateFullScreenState);
+
+                        layerRange?.addEventListener("input", () => {
+                                if (!editor) return;
+                                const value = Math.max(1, Number(layerRange.value));
+                                editor.doc.trackVisibleChannels = value;
+                                editor.doc.notifier.changed();
+                                if (layerCount) layerCount.textContent = String(value);
+                        });
+
+                        columnRange?.addEventListener("input", () => {
+                                if (!editor) return;
+                                const value = Math.max(1, Number(columnRange.value));
+                                editor.doc.trackVisibleBars = value;
+                                editor.doc.notifier.changed();
+                                if (columnCount) columnCount.textContent = String(value);
+                        });
+
+                        extendButton?.addEventListener("click", () => {
+                                if (!editor) return;
+                                const amount = Math.max(1, Math.floor(Number(extendAmount?.value || 0)));
+                                extendSongBy(amount);
+                        });
+
+                        melodyButton?.addEventListener("click", () => {
+                                addChannelLayer("melody");
+                        });
+
+                        drumButton?.addEventListener("click", () => {
+                                addChannelLayer("drum");
+                        });
+
+                        const updateActionState = () => {
+                                if (!editor || !window.beepbox) return;
+                                const doc = editor.doc;
+                                const config = beepbox.Config;
+                                const maxLayers = config.pitchChannelCountMax + config.noiseChannelCountMax;
+
+                                if (layerRange) {
+                                        layerRange.removeAttribute("disabled");
+                                        layerRange.max = String(maxLayers);
+                                        const currentLayers = Math.min(maxLayers, Math.max(1, doc.trackVisibleChannels));
+                                        layerRange.value = String(currentLayers);
+                                        if (layerCount) layerCount.textContent = String(currentLayers);
+                                }
+
+                                if (columnRange) {
+                                        columnRange.removeAttribute("disabled");
+                                        columnRange.max = String(config.barCountMax);
+                                        columnRange.min = "4";
+                                        const currentBars = Math.min(config.barCountMax, Math.max(4, doc.trackVisibleBars));
+                                        columnRange.value = String(currentBars);
+                                        if (columnCount) columnCount.textContent = String(currentBars);
+                                }
+
+                                const additional = config.barCountMax - doc.song.barCount;
+                                if (extendAmount) {
+                                        extendAmount.removeAttribute("disabled");
+                                        const cap = Math.max(1, Math.min(32, additional));
+                                        extendAmount.max = String(Math.max(1, cap));
+                                        const safeValue = Math.max(1, Math.min(Number(extendAmount.value) || 1, Math.max(1, cap)));
+                                        extendAmount.value = String(safeValue);
+                                        extendAmount.disabled = additional <= 0;
+                                }
+
+                                if (extendButton) {
+                                        extendButton.disabled = additional <= 0;
+                                }
+
+                                if (melodyButton) {
+                                        melodyButton.removeAttribute("disabled");
+                                        melodyButton.disabled = doc.song.pitchChannelCount >= config.pitchChannelCountMax;
+                                }
+
+                                if (drumButton) {
+                                        drumButton.removeAttribute("disabled");
+                                        drumButton.disabled = doc.song.noiseChannelCount >= config.noiseChannelCountMax;
+                                }
+
+                                if (fullscreenButton) {
+                                        fullscreenButton.removeAttribute("disabled");
+                                }
+
+                                if (totalBars) {
+                                        totalBars.textContent = String(doc.song.barCount);
+                                }
+                        };
+
+                        onEditorReady(() => {
+                                updateFullScreenState();
+                                updateActionState();
+                                editor.doc.notifier.watch(updateActionState);
+                        });
+                }
+
+                function extendSongBy(amount) {
+                        if (!editor || !window.beepbox) return;
+                        const doc = editor.doc;
+                        const config = beepbox.Config;
+                        const available = config.barCountMax - doc.song.barCount;
+                        if (available <= 0) return;
+                        const steps = Math.min(Math.max(1, amount), available);
+                        const lastBarIndex = Math.max(0, doc.song.barCount - 1);
+                        doc.selection.boxSelectionX0 = doc.selection.boxSelectionX1 = lastBarIndex;
+                        doc.selection.boxSelectionY0 = doc.selection.boxSelectionY1 = doc.channel;
+                        doc.selection.setChannelBar(doc.channel, lastBarIndex);
+                        for (let i = 0; i < steps; i++) {
+                                const previous = doc.song.barCount;
+                                doc.selection.insertBars();
+                                if (doc.song.barCount === previous) {
+                                        break;
+                                }
+                        }
+                }
+
+                function addChannelLayer(type) {
+                        if (!editor || !window.beepbox) return;
+                        const doc = editor.doc;
+                        const config = beepbox.Config;
+                        const isDrum = type === "drum";
+                        if (!isDrum && doc.song.pitchChannelCount >= config.pitchChannelCountMax) return;
+                        if (isDrum && doc.song.noiseChannelCount >= config.noiseChannelCountMax) return;
+
+                        const totalChannels = doc.song.channels.length;
+                        let targetIndex = Math.max(0, totalChannels - 1);
+                        if (isDrum) {
+                                if (doc.song.noiseChannelCount > 0) {
+                                        targetIndex = doc.song.pitchChannelCount + doc.song.noiseChannelCount - 1;
+                                }
+                        } else if (doc.song.pitchChannelCount > 0) {
+                                targetIndex = doc.song.pitchChannelCount - 1;
+                        }
+
+                        doc.selection.boxSelectionY0 = doc.selection.boxSelectionY1 = Math.max(0, targetIndex);
+                        doc.selection.boxSelectionX0 = doc.selection.boxSelectionX1 = doc.bar;
+                        doc.selection.setChannelBar(Math.max(0, targetIndex), doc.bar);
+                        doc.selection.insertChannel();
+                }
+        </script>
+
 </body>
 </html>
