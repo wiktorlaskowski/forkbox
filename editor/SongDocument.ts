@@ -7,6 +7,7 @@ import {Layout} from "./Layout.js";
 import {Pattern, Channel, Song, Synth} from "../synth/synth.js";
 import {SongRecovery, generateUid, errorAlert} from "./SongRecovery.js";
 import {SongPerformance} from "./SongPerformance.js";
+import {MidiInputHandler} from "./MidiInput.js";
 import {Selection} from "./Selection.js";
 import {Preferences} from "./Preferences.js";
 import {Change} from "./Change.js";
@@ -28,6 +29,7 @@ export class SongDocument {
 	public song: Song;
 	public synth: Synth;
 	public performance: SongPerformance;
+	public midiInputHandler: MidiInputHandler;
 	public readonly notifier: ChangeNotifier = new ChangeNotifier(() => this._validateDocState());
 	public readonly selection: Selection = new Selection(this);
 	public readonly prefs: Preferences = new Preferences();
@@ -117,6 +119,7 @@ export class SongDocument {
 		
 		this._validateDocState();
 		this.performance = new SongPerformance(this);
+		this.midiInputHandler = new MidiInputHandler(this);
 	}
 	
 	public toggleDisplayBrowserUrl() {

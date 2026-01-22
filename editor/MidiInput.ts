@@ -29,12 +29,17 @@ interface MIDIMessageEvent {
 const id: string = ((Math.random() * 0xffffffff) >>> 0).toString(16);
 
 export class MidiInputHandler {
+	private _triedToRegisterMidiAccess: boolean = false;
+	
 	constructor(private _doc: SongDocument) {
-		this.registerMidiAccessHandler();
+		this.tryRegisteringMidiAccessHandler();
 	}
 	
-	private async registerMidiAccessHandler() {
+	public async tryRegisteringMidiAccessHandler() {
 		if (navigator.requestMIDIAccess == null) return;
+		if (!this._doc.prefs.enableMidi) return;
+		if (this._triedToRegisterMidiAccess) return;
+		this._triedToRegisterMidiAccess = true;
 		
 		try {
 			const midiAccess = await navigator.requestMIDIAccess();
@@ -103,7 +108,7 @@ export class MidiInputHandler {
 		
 		switch (eventType) {
 			case MidiEventType.noteOn:
-				this._doc.synth.preferLowerLatency = true;
+				this._doc.performance.preferLowLatency();
 				this._doc.performance.addPerformedPitch(key);
 				break;
 			case MidiEventType.noteOff:

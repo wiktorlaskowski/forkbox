@@ -25,6 +25,7 @@ export class Box {
 			this._text.data = String(index);
 		}
 		this._label.style.color = selected ? ColorConfig.invertedText : color;
+		this._label.classList.toggle("smaller-digits", index >= 100);
 		this.container.style.background = selected ? color : (index == 0) ? "none" : ColorConfig.uiWidgetBackground;
 	}
 }

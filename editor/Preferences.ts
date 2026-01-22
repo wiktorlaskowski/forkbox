@@ -36,25 +36,25 @@ export class Preferences {
 	}
 	
 	public reload(): void {
-		this.autoPlay = window.localStorage.getItem("autoPlay") == "true";
-		this.autoFollow = window.localStorage.getItem("autoFollow") != "false";
-		this.enableNotePreview = window.localStorage.getItem("enableNotePreview") != "false";
-		this.showFifth = window.localStorage.getItem("showFifth") == "true";
-		this.notesOutsideScale = window.localStorage.getItem("notesOutsideScale") == "true";
-		this.showLetters = window.localStorage.getItem("showLetters") == "true";
-		this.showChannels = window.localStorage.getItem("showChannels") == "true";
-		this.showScrollBar = window.localStorage.getItem("showScrollBar") == "true";
-		this.alwaysShowSettings = window.localStorage.getItem("alwaysShowSettings") == "true";
-		this.instrumentCopyPaste = window.localStorage.getItem("instrumentCopyPaste") == "true";
-		this.enableChannelMuting = window.localStorage.getItem("enableChannelMuting") == "true";
-		this.displayBrowserUrl = window.localStorage.getItem("displayBrowserUrl") != "false";
-		this.pressControlForShortcuts = window.localStorage.getItem("pressControlForShortcuts") == "true";
-		this.enableMidi = window.localStorage.getItem("enableMidi") != "false";
-		this.showRecordButton = window.localStorage.getItem("showRecordButton") == "true";
-		this.snapRecordedNotesToRhythm = window.localStorage.getItem("snapRecordedNotesToRhythm") == "true";
-		this.ignorePerformedNotesNotInScale = window.localStorage.getItem("ignorePerformedNotesNotInScale") == "true";
-		this.metronomeCountIn = window.localStorage.getItem("metronomeCountIn") != "false";
-		this.metronomeWhileRecording = window.localStorage.getItem("metronomeWhileRecording") != "false";
+		this.autoPlay = this._loadBoolean("autoPlay", false);
+		this.autoFollow = this._loadBoolean("autoFollow", true);
+		this.enableNotePreview = this._loadBoolean("enableNotePreview", true);
+		this.showFifth = this._loadBoolean("showFifth", false);
+		this.notesOutsideScale = this._loadBoolean("notesOutsideScale", false);
+		this.showLetters = this._loadBoolean("showLetters", false);
+		this.showChannels = this._loadBoolean("showChannels", false);
+		this.showScrollBar = this._loadBoolean("showScrollBar", false);
+		this.alwaysShowSettings = this._loadBoolean("alwaysShowSettings", false);
+		this.instrumentCopyPaste = this._loadBoolean("instrumentCopyPaste", false);
+		this.enableChannelMuting = this._loadBoolean("enableChannelMuting", false);
+		this.displayBrowserUrl = this._loadBoolean("displayBrowserUrl", true);
+		this.pressControlForShortcuts = this._loadBoolean("pressControlForShortcuts", false);
+		this.enableMidi = this._loadBoolean("enableMidi", false);
+		this.showRecordButton = this._loadBoolean("showRecordButton", false);
+		this.snapRecordedNotesToRhythm = this._loadBoolean("snapRecordedNotesToRhythm", false);
+		this.ignorePerformedNotesNotInScale = this._loadBoolean("ignorePerformedNotesNotInScale", false);
+		this.metronomeCountIn = this._loadBoolean("metronomeCountIn", true);
+		this.metronomeWhileRecording = this._loadBoolean("metronomeWhileRecording", true);
 		this.keyboardLayout = window.localStorage.getItem("keyboardLayout") || "wickiHayden";
 		this.layout = window.localStorage.getItem("layout") || "small";
 		this.colorTheme = window.localStorage.getItem("colorTheme") || "dark classic";
@@ -68,7 +68,7 @@ export class Preferences {
 		}
 		
 		if (window.localStorage.getItem("fullScreen") != null) {
-			if (window.localStorage.getItem("fullScreen") == "true") this.layout = "long";
+			if (this._loadBoolean("fullScreen", false)) this.layout = "long";
 			window.localStorage.removeItem("fullScreen");
 		}
 	}
@@ -99,5 +99,11 @@ export class Preferences {
 		window.localStorage.setItem("colorTheme", this.colorTheme);
 		window.localStorage.setItem("volume", String(this.volume));
 		window.localStorage.setItem("visibleOctaves", String(this.visibleOctaves));
+	}
+	
+	private _loadBoolean(name: string, defaultToTrue: boolean) {
+		return defaultToTrue
+			? window.localStorage.getItem(name) != "false"
+			: window.localStorage.getItem(name) == "true";
 	}
 }

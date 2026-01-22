@@ -157,6 +157,9 @@ let zoomEnabled: boolean = false;
 let timelineWidth: number = 1;
 
 const synth: Synth = new Synth();
+const isMobile: boolean = matchMedia("(pointer:coarse)").matches;
+synth.anticipatePoorPerformance = isMobile;
+
 let titleText: HTMLHeadingElement = h1({style: "flex-grow: 1; margin: 0 1px;"}, "");
 let editLink: HTMLAnchorElement = a({target: "_top", style: "margin: 0 4px;"}, "✎ Edit");
 let copyLink: HTMLAnchorElement = a({href: "javascript:void(0)", style: "margin: 0 4px;"}, "⎘ Copy URL");

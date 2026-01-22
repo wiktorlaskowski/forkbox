@@ -1,5 +1,6 @@
 .dropbox
 .DS_Store
+.gcloudignore
 /build
 /bundle
 /dist/esm

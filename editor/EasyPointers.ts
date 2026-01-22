@@ -204,9 +204,21 @@ export class EasyPointers<UserData = unknown> {
 			let pointer: _InternalPointer<UserData> | undefined = this._byId.get(event.pointerId);
 			if (!pointer || !pointer._isPresent) return stop(event);
 			if (pointer._isDown) {
-				this.dispatchPointerCancelEvent(event.pointerId);
-				pointer = this._byId.get(event.pointerId);
-				if (!pointer || !pointer._isPresent) return stop(event);
+				// FireFox seems to have a bug where dragging a captured pointer outside of the
+				// browser window immediately fires a pointerleave event even though the pointer
+				// button is still down. When the button is released, then it correctly fires
+				// a pointerup event followed by a second pointerleave event. We want to ignore
+				// the first pointerleave event, which we can only distinguish from legitimate
+				// pointerleave events by the fact that the pointer button is still down.
+				return stop(event);
+				// If it weren't for that bug, we would assume that the pointerleave event is
+				// legitimate and authoritative, so if our pointer button had been considered to be
+				// down, we would assume we must have missed a previous event releasing the button,
+				// in which case we would want to cancel it because our own records must have been
+				// wrong.
+				//this.dispatchPointerCancelEvent(event.pointerId);
+				//pointer = this._byId.get(event.pointerId);
+				//if (!pointer || !pointer._isPresent) return stop(event);
 			}
 			
 			// UPDATE POINTER

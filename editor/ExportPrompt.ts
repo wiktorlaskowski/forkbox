@@ -7,10 +7,11 @@ import {Preset, EditorConfig} from "./EditorConfig.js";
 import {SongDocument} from "./SongDocument.js";
 import {Prompt} from "./Prompt.js";
 import {HTML} from "imperative-html/dist/esm/elements-strict.js";
+import {SongRenderer} from "./SongRenderer.js";
 import {ArrayBufferWriter} from "./ArrayBufferWriter.js";
 import {MidiChunkType, MidiFileFormat, MidiControlEventMessage, MidiEventType, MidiMetaEventMessage, MidiRegisteredParameterNumberMSB, MidiRegisteredParameterNumberLSB, volumeMultToMidiVolume, volumeMultToMidiExpression, defaultMidiPitchBend, defaultMidiExpression} from "./Midi.js";
 
-const {button, div, h2, input, select, option} = HTML;
+const {button, div, h2, input, progress, select, option} = HTML;
 
 function lerp(low: number, high: number, t: number): number {
 	return low + t * (high - low);
@@ -21,7 +22,7 @@ function save(blob: Blob, name: string): void {
 		(<any>navigator).msSaveOrOpenBlob(blob, name);
 		return;
 	}
-
+	
 	const anchor: HTMLAnchorElement = document.createElement("a");
 	if (anchor.download != undefined) {
 		const url: string = URL.createObjectURL(blob);
@@ -51,8 +52,11 @@ export class ExportPrompt implements Prompt {
 		option({value: "json"}, ".json (for any BeepBox version)"),
 		option({value: "html"}, ".html (opens BeepBox)"),
 	);
+	private readonly _progressBar: HTMLProgressElement = progress({style: "display: none;", max: "1"});
+	private readonly _statusMessage: HTMLDivElement = div({style: "display: none; text-align: center;"});
 	private readonly _cancelButton: HTMLButtonElement = button({class: "cancelButton"});
 	private readonly _exportButton: HTMLButtonElement = button({class: "exportButton", style: "width:45%;"}, "Export");
+	private readonly _downloadButton: HTMLButtonElement = button({class: "exportButton", style: "width:45%; display: none;"}, "Save File");
 	private static readonly midiChipInstruments: number[] = [
 		0x4A, // rounded -> recorder
 		0x47, // triangle -> clarinet
@@ -64,6 +68,7 @@ export class ExportPrompt implements Prompt {
 		0x51, // double pulse -> sawtooth wave
 		0x51, // spiky -> sawtooth wave
 	];
+	private _canceled: boolean = false;
 	
 	public readonly container: HTMLDivElement = div({class: "prompt noSelection", style: "width: 200px;"},
 		h2("Export Options"),
@@ -85,9 +90,11 @@ export class ExportPrompt implements Prompt {
 		),
 		div({style: "text-align: left;"}, "File Type:"),
 		div({class: "selectContainer", style: "width: 100%;"}, this._formatSelect),
-		div({style: "text-align: left;"}, "(Be patient, exporting may take some time...)"),
+		this._progressBar,
+		this._statusMessage,
 		div({style: "display: flex; flex-direction: row-reverse; justify-content: space-between;"},
 			this._exportButton,
+			this._downloadButton,
 		),
 		this._cancelButton,
 	);
@@ -126,10 +133,12 @@ export class ExportPrompt implements Prompt {
 	}
 	
 	private _close = (): void => { 
+		this._canceled = true;
 		this._doc.undo();
 	}
 	
 	public cleanUp = (): void => { 
+		this._canceled = true;
 		this._fileName.removeEventListener("input", ExportPrompt._validateFileName);
 		this._loopDropDown.removeEventListener("blur", ExportPrompt._validateNumber);
 		this._exportButton.removeEventListener("click", this._export);
@@ -161,6 +170,11 @@ export class ExportPrompt implements Prompt {
 	
 	private _export = (): void => {
 		window.localStorage.setItem("exportFormat", this._formatSelect.value);
+		this._exportButton.style.display = "none";
+		this._enableIntro.disabled = true;
+		this._loopDropDown.disabled = true;
+		this._enableOutro.disabled = true;
+		this._formatSelect.disabled = true;
 		switch(this._formatSelect.value) {
 			case "wav":
 				this._exportToWav();
@@ -182,28 +196,25 @@ export class ExportPrompt implements Prompt {
 		}
 	}
 	
-	private _synthesize(sampleRate: number): {recordedSamplesL: Float32Array, recordedSamplesR: Float32Array} {
-		const synth: Synth = new Synth(this._doc.song);
-		synth.samplesPerSecond = sampleRate;
-		synth.loopRepeatCount = Number(this._loopDropDown.value) - 1;
-		if (!this._enableIntro.checked) {
-			for (let introIter: number = 0; introIter < this._doc.song.loopStart; introIter++) {
-				synth.goToNextBar();
-			}
+	private async _synthesize(sampleRate: number): Promise<{recordedSamplesL: Float32Array, recordedSamplesR: Float32Array}> {
+		this._progressBar.style.display = "block";
+		this._statusMessage.style.display = "block";
+		this._statusMessage.textContent = "Synthesizing...";
+		const renderer: SongRenderer = new SongRenderer();
+		for await (const completionRate of renderer.generate(this._doc.song, sampleRate, this._enableIntro.checked, this._enableOutro.checked, Number(this._loopDropDown.value))) {
+			this._progressBar.value = completionRate;
+			renderer.canceled = this._canceled;
+			if (this._canceled) break;
 		}
-		const sampleFrames: number = Math.ceil(synth.getSamplesPerBar() * synth.getTotalBars(this._enableIntro.checked, this._enableOutro.checked));
-		const recordedSamplesL: Float32Array = new Float32Array(sampleFrames);
-		const recordedSamplesR: Float32Array = new Float32Array(sampleFrames);
-		//const timer: number = performance.now();
-		synth.synthesize(recordedSamplesL, recordedSamplesR, sampleFrames);
-		//console.log("export timer", (performance.now() - timer) / 1000.0);
-		
-		return {recordedSamplesL, recordedSamplesR};
+		this._progressBar.style.display = "none";
+		this._statusMessage.style.display = "none";
+		return {recordedSamplesL: renderer.outputSamplesL, recordedSamplesR: renderer.outputSamplesR};
 	}
 	
-	private _exportToWav(): void {
+	private async _exportToWav(): Promise<void> {
 		const sampleRate: number = 48000; // Use professional video editing standard sample rate for .wav file export.
-		const {recordedSamplesL, recordedSamplesR} = this._synthesize(sampleRate);
+		const {recordedSamplesL, recordedSamplesR} = await this._synthesize(sampleRate);
+		if (this._canceled) return;
 		const sampleFrames: number = recordedSamplesL.length;
 		
 		const wavChannelCount: number = 2;
@@ -257,14 +268,22 @@ export class ExportPrompt implements Prompt {
 		}
 		
 		const blob: Blob = new Blob([arrayBuffer], {type: "audio/wav"});
-		save(blob, this._fileName.value.trim() + ".wav");
-		this._close();
+		this._downloadButton.style.display = "";
+		this._downloadButton.addEventListener("click", () => {
+			save(blob, this._fileName.value.trim() + ".wav");
+			this._close();
+		});
 	}
 	
 	private _exportToMp3(): void {
-		const whenEncoderIsAvailable = (): void => {
+		const whenEncoderIsAvailable = async (): Promise<void> => {
 			const sampleRate: number = 44100; // Use consumer CD standard sample rate for .mp3 export.
-			const {recordedSamplesL, recordedSamplesR} = this._synthesize(sampleRate);
+			const {recordedSamplesL, recordedSamplesR} = await this._synthesize(sampleRate);
+			if (this._canceled) return;
+			
+			this._progressBar.style.display = "block";
+			this._statusMessage.style.display = "block";
+			this._statusMessage.textContent = "Compressing...";
 			
 			const lamejs: any = (<any> window)["lamejs"];
 			const channelCount: number = 2;
@@ -281,18 +300,34 @@ export class ExportPrompt implements Prompt {
 				right[i] = Math.floor(Math.max(-1, Math.min(1, recordedSamplesR[i])) * range);
 			}
 			
+			let lastRenderTime: number = performance.now();
 			for (let i: number = 0; i < left.length; i += sampleBlockSize) {
 				const leftChunk: Int16Array = left.subarray(i, i + sampleBlockSize);
 				const rightChunk: Int16Array = right.subarray(i, i + sampleBlockSize);
 				const mp3buf: any = mp3encoder.encodeBuffer(leftChunk, rightChunk);
 				if (mp3buf.length > 0) mp3Data.push(mp3buf);
+				
+				const now = performance.now();
+				if (now - lastRenderTime > 1000 / 30) {
+					lastRenderTime = now;
+					this._progressBar.value = i / left.length;
+					// Give the browser a chance to render a progress bar.
+					await new Promise((resolve) => requestAnimationFrame(resolve));
+					if (this._canceled) return;
+				}
 			}
 			const mp3buf: any = mp3encoder.flush();
 			if (mp3buf.length > 0) mp3Data.push(mp3buf);
 			
+			this._progressBar.style.display = "none";
+			this._statusMessage.style.display = "none";
+			
 			const blob: Blob = new Blob(mp3Data, {type: "audio/mp3"});
-			save(blob, this._fileName.value.trim() + ".mp3");
-			this._close();
+			this._downloadButton.style.display = "";
+			this._downloadButton.addEventListener("click", () => {
+				save(blob, this._fileName.value.trim() + ".mp3");
+				this._close();
+			});
 		}
 		
 		if ("lamejs" in window) {

@@ -1595,6 +1595,7 @@ export class Instrument {
 							this.drumsetSpectrumWaves[j].spectrum[i] = Math.max(0, Math.min(Config.spectrumMax, Math.round(Config.spectrumMax * (+drum["spectrum"][i]) / 100)));
 						}
 					}
+					this.drumsetSpectrumWaves[j].markCustomWaveDirty();
 				}
 			}
 		}
@@ -4761,7 +4762,7 @@ export class Synth {
 	}
 	
 	private activateAudio(): void {
-		const bufferSize: number = this.anticipatePoorPerformance ? (this.preferLowerLatency ? 2048 : 4096) : (this.preferLowerLatency ? 512 : 2048);
+		const bufferSize: number = this.anticipatePoorPerformance ? (this.preferLowerLatency ? 2048 : 4096) : (this.preferLowerLatency ? 1024 : 2048);
 		if (this.audioCtx == null || this.scriptNode == null || this.scriptNode.bufferSize != bufferSize) {
 			if (this.scriptNode != null) this.deactivateAudio();
 			const latencyHint: string = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");

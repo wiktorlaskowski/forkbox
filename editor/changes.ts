@@ -131,6 +131,36 @@ export function generateScaleMap(oldScaleFlags: ReadonlyArray<boolean>, newScale
 	return fullPitchMap;
 }
 
+/** Snaps a positive integer pitch to the octave scale, assuming it's in range. */
+function snapPitchToScale(doc: SongDocument, pitch: number) {
+    if (doc.song.getChannelIsNoise(doc.channel) || doc.prefs.notesOutsideScale) {
+        return Math.round(pitch); // skip
+    }
+    if (Config.scales[doc.song.scale].flags[Math.round(pitch) % 12]) {
+        return Math.round(pitch); // already on scale
+    }
+
+    let distanceUp = Config.maxPitch;
+    let distanceDown = Config.maxPitch;
+
+    for (let i = pitch + 1; i < Config.maxPitch + 0.5; i++) {
+        if (Config.scales[doc.song.scale].flags[Math.round(i) % 12]) {
+            distanceUp = i - pitch;
+            break;
+        }
+    }
+    for (let i = pitch - 1; i > -0.5; i--) {
+        if (Config.scales[doc.song.scale].flags[Math.round(i) % 12]) {
+            distanceDown = pitch - i;
+            break;
+        }
+    }
+
+    return distanceUp < distanceDown
+        ? Math.round(pitch + distanceUp)
+        : Math.round(pitch - distanceDown);
+}
+
 function removeRedundantPins(pins: NotePin[]): void {
 	for (let i: number = 1; i < pins.length - 1; ) {
 		const prevPin: NotePin = pins[i-1];
@@ -2681,30 +2711,81 @@ export class ChangeNoteTruncate extends ChangeSequence {
 	}
 }
 
+class ChangeSplitNotesAtPoint extends ChangeSequence {
+    constructor(doc: SongDocument, pattern: Pattern, cutPoint: number) {
+        super();
+
+        let splitNote: Note;
+        for (let i = pattern.notes.length - 1; i >= 0; i--) {
+            const note: Note = pattern.notes[i];
+
+            if (note.start < cutPoint && cutPoint < note.end) {
+                // Separate the pins left and right of the cut point into two notes, also adjust the times.
+                // Right note pins will need to be normalized by pitch and interval, but that means knowing the
+                // exact values at the cutpoint.
+                const cutRelativeToNote = cutPoint - note.start
+                const cutIndex = note.pins.findIndex((pin) => pin.time > cutRelativeToNote)
+                if (cutIndex != -1) {
+                    splitNote = note.clone();
+
+                    note.end = cutPoint;
+                    note.pins = [...note.pins.slice(0, cutIndex)];
+
+                    splitNote.continuesLastPattern = false;
+                    splitNote.start = cutPoint;
+                    splitNote.pins = [...splitNote.pins.slice(cutIndex)];
+                    splitNote.pins.forEach((pin) => {
+                        pin.time -= cutRelativeToNote;
+                    });
+
+					// Distance from the cutpoint determines interpolation bias for pitch and volume.
+                    const leftPin = note.pins[note.pins.length - 1];
+                    const rightPin = splitNote.pins[0];
+                    const spaceToLeftPin = cutRelativeToNote - leftPin.time;
+                    const spaceBetweenPins = spaceToLeftPin + rightPin.time;
+                    const percentBetweenPins = spaceBetweenPins > 0
+                        ? spaceToLeftPin / spaceBetweenPins
+                        : 0;
+
+					// Round the new pin's fractional values to make it legal, snapping to scale (if needed).
+					const cutPitch = leftPin.interval + percentBetweenPins * (rightPin.interval - leftPin.interval);
+                    const cutPin = makeNotePin(
+                        snapPitchToScale(doc, note.pitches[0] + cutPitch) - note.pitches[0],
+                        cutRelativeToNote,
+                        Math.round(leftPin.size + percentBetweenPins * (rightPin.size - leftPin.size)),
+                    );
+
+					// Note pitch must start at zero and pins get adjusted for the difference in starting pitch.
+                    splitNote.pitches = splitNote.pitches.map((pitch) => pitch + cutPin.interval)
+                    splitNote.pins.forEach((pin) => pin.interval -= cutPin.interval);
+
+                    // Notes need pins at their exact start/end. We cut the pins left and right earlier, but now
+                    // insert the cut pin as needed to the end of left note and start of right note.
+
+					// Unless cut exactly on a pin, the notes may need to include the cut pin as well.
+                    if (leftPin.time != cutRelativeToNote) {
+                        note.pins.push(cutPin);
+                    } else {
+                        note.pins[note.pins.length - 1].interval = cutPin.interval; // adjusts to match scale snapping.
+                    }
+                    if (rightPin.time > 0) {
+                        splitNote.pins.unshift(makeNotePin(0, 0, cutPin.size))
+                    }
+
+                    pattern.notes.splice(i + 1, 0, splitNote);
+                }
+
+                break;
+            }
+        }
+    }
+}
+
 class ChangeSplitNotesAtSelection extends ChangeSequence {
 	constructor(doc: SongDocument, pattern: Pattern) {
 		super();
-		let i: number = 0;
-		while (i < pattern.notes.length) {
-			const note: Note = pattern.notes[i];
-			if (note.start < doc.selection.patternSelectionStart && doc.selection.patternSelectionStart < note.end) {
-				const copy: Note = note.clone();
-				this.append(new ChangeNoteLength(doc, note, note.start, doc.selection.patternSelectionStart));
-				i++;
-				this.append(new ChangeNoteAdded(doc, pattern, copy, i, false));
-				this.append(new ChangeNoteLength(doc, copy, doc.selection.patternSelectionStart, copy.end));
-				// i++; // The second note might be split again at the end of the selection. Check it again.
-			} else if (note.start < doc.selection.patternSelectionEnd && doc.selection.patternSelectionEnd < note.end) {
-				const copy: Note = note.clone();
-				this.append(new ChangeNoteLength(doc, note, note.start, doc.selection.patternSelectionEnd));
-				i++;
-				this.append(new ChangeNoteAdded(doc, pattern, copy, i, false));
-				this.append(new ChangeNoteLength(doc, copy, doc.selection.patternSelectionEnd, copy.end));
-				i++;
-			} else {
-				i++;
-			}
-		}
+		this.append(new ChangeSplitNotesAtPoint(doc, pattern, doc.selection.patternSelectionStart));
+		this.append(new ChangeSplitNotesAtPoint(doc, pattern, doc.selection.patternSelectionEnd));
 	}
 }
 

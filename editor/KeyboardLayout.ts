@@ -153,7 +153,7 @@ export class KeyboardLayout {
 		if (isDrum) {
 			if (x >= 0 && x < Config.drumCount) {
 				if (pressed) {
-					this._doc.synth.preferLowerLatency = true;
+					this._doc.performance.preferLowLatency();
 					this._doc.performance.addPerformedPitch(x);
 					this._possiblyPlayingPitchesFromKeyboard = true;
 				} else {
@@ -167,7 +167,7 @@ export class KeyboardLayout {
 		
 		if (pitch != null) {
 			if (pressed) {
-				this._doc.synth.preferLowerLatency = true;
+				this._doc.performance.preferLowLatency();
 				this._doc.performance.addPerformedPitch(pitch);
 				this._possiblyPlayingPitchesFromKeyboard = true;
 			} else {

@@ -1,7 +1,7 @@
 // Copyright (c) John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import {InstrumentType, EffectType, Config, getPulseWidthRatio, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb} from "../synth/SynthConfig.js";
-import {Preset, PresetCategory, EditorConfig, isMobile, prettyNumber} from "./EditorConfig.js";
+import {Preset, PresetCategory, EditorConfig, isMobile, isOnMac, ctrlSymbol, prettyNumber} from "./EditorConfig.js";
 import {ColorConfig, ChannelColors} from "./ColorConfig.js";
 import "./Layout.js"; // Imported here for the sake of ensuring this code is transpiled early.
 import {Instrument, Channel, Synth} from "../synth/synth.js";
@@ -24,7 +24,6 @@ import {SpectrumEditor} from "./SpectrumEditor.js";
 import {HarmonicsEditor} from "./HarmonicsEditor.js";
 import {BarScrollBar} from "./BarScrollBar.js";
 import {OctaveScrollBar} from "./OctaveScrollBar.js";
-import {MidiInputHandler} from "./MidiInput.js";
 import {KeyboardLayout} from "./KeyboardLayout.js";
 import {Piano} from "./Piano.js";
 import {BeatsPerBarPrompt} from "./BeatsPerBarPrompt.js";
@@ -115,7 +114,8 @@ class Slider {
 		// touching the slider. This code prevents the initial slider change and
 		// reimplements it if the pointer will not scroll.
 		input.style.pointerEvents = "none";
-		this.container = span(input, {style: "touch-action: pan-y; display: flex;"});
+		this.container = span(input, {style: "touch-action: pan-y; display: flex; cursor: pointer;"});
+		this.container.title = input.title;
 		new EasyPointers(this.container);
 		this.container.addEventListener("pointerdown", this._onPointerDown);
 		this.container.addEventListener("pointermove", this._onPointerMove);
@@ -172,6 +172,9 @@ class Slider {
 	};
 }
 
+// "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
+const hideSelectMenuTitlesInOptions: boolean = !isOnMac;
+
 export class SongEditor {
 	public readonly doc: SongDocument = new SongDocument();
 	public prompt: Prompt | null = null;
@@ -193,10 +196,10 @@ export class SongEditor {
 	private readonly _nextBarButton: HTMLButtonElement = button({class: "nextBarButton", type: "button", title: "Next Bar (right bracket)"});
 	private readonly _volumeSlider: Slider = new Slider(input({title: "main volume", style: "flex-grow: 1; margin: 0;", type: "range", min: "0", max: "75", value: "50", step: "1"}), this.doc, (oldValue: number, newValue: number) => { this._setVolumeSlider(); return null; });
 	private readonly _fileMenu: HTMLSelectElement = select({style: "width: 100%;"},
-		option({selected: true, disabled: true, hidden: false}, "File"), // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
+		option({selected: true, disabled: true, hidden: hideSelectMenuTitlesInOptions}, "File"),
 		option({value: "new"}, "+ New Blank Song"),
-		option({value: "import"}, "↑ Import Song... (" + EditorConfig.ctrlSymbol + "O)"),
-		option({value: "export"}, "↓ Export Song... (" + EditorConfig.ctrlSymbol + "S)"),
+		option({value: "import"}, "↑ Import Song... (" + ctrlSymbol + "O)"),
+		option({value: "export"}, "↓ Export Song... (" + ctrlSymbol + "S)"),
 		option({value: "copyUrl"}, "⎘ Copy Song URL"),
 		option({value: "shareUrl"}, "⤳ Share Song URL"),
 		option({value: "shortenUrl"}, "… Shorten Song URL"),
@@ -205,16 +208,16 @@ export class SongEditor {
 		option({value: "songRecovery"}, "⚠ Recover Recent Song..."),
 	);
 	private readonly _editMenu: HTMLSelectElement = select({style: "width: 100%;"},
-		option({selected: true, disabled: true, hidden: false}, "Edit"), // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
+		option({selected: true, disabled: true, hidden: hideSelectMenuTitlesInOptions}, "Edit"),
 		option({value: "undo"}, "Undo (Z)"),
 		option({value: "redo"}, "Redo (Y)"),
 		option({value: "copy"}, "Copy Pattern (C)"),
 		option({value: "pasteNotes"}, "Paste Pattern Notes (V)"),
-		option({value: "pasteNumbers"}, "Paste Pattern Numbers (" + EditorConfig.ctrlSymbol + "⇧V)"),
+		option({value: "pasteNumbers"}, "Paste Pattern Numbers (" + ctrlSymbol + "⇧V)"),
 		option({value: "insertBars"}, "Insert Bar (⏎)"),
 		option({value: "deleteBars"}, "Delete Selected Bars (⌫)"),
-		option({value: "insertChannel"}, "Insert Channel (" + EditorConfig.ctrlSymbol + "⏎)"),
-		option({value: "deleteChannel"}, "Delete Selected Channels (" + EditorConfig.ctrlSymbol + "⌫)"),
+		option({value: "insertChannel"}, "Insert Channel (" + ctrlSymbol + "⏎)"),
+		option({value: "deleteChannel"}, "Delete Selected Channels (" + ctrlSymbol + "⌫)"),
 		option({value: "selectAll"}, "Select All (A)"),
 		option({value: "selectChannel"}, "Select Channel (⇧A)"),
 		option({value: "duplicatePatterns"}, "Duplicate Reused Patterns (D)"),
@@ -226,16 +229,16 @@ export class SongEditor {
 		option({value: "channelSettings"}, "Channel Settings... (Q)"),
 	);
 	private readonly _optionsMenu: HTMLSelectElement = select({style: "width: 100%;"},
-		option({selected: true, disabled: true, hidden: false}, "Preferences"), // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
+		option({selected: true, disabled: true, hidden: hideSelectMenuTitlesInOptions}, "Preferences"),
 		option({value: "autoPlay"}, "Auto Play on Load"),
-		option({value: "autoFollow"}, "Show And Play The Same Bar"),
+		option({value: "autoFollow"}, "Automatically View Current Bar"),
 		option({value: "enableNotePreview"}, "Hear Preview of Added Notes"),
 		option({value: "showLetters"}, "Show Piano Keys"),
 		option({value: "showFifth"}, 'Highlight "Fifth" of Song Key'),
 		option({value: "notesOutsideScale"}, "Allow Adding Notes Not in Scale"),
 		option({value: "setDefaultScale"}, "Use Current Scale as Default"),
 		option({value: "showChannels"}, "Show Notes From All Channels"),
-		option({value: "showScrollBar"}, "Show Octave Scroll Bar"),
+		option({value: "showScrollBar"}, "Show Octave Scrollbar"),
 		option({value: "alwaysShowSettings"}, "Customize All Instruments"),
 		option({value: "instrumentCopyPaste"}, "Instrument Copy/Paste Buttons"),
 		option({value: "enableChannelMuting"}, "Enable Channel Muting"),
@@ -281,7 +284,7 @@ export class SongEditor {
 	private readonly _fadeInOutRow: HTMLElement = div({class: "selectRow"}, span({class: "tip", onclick: ()=>this._openPrompt("fadeInOut")}, "Fade In/Out:"), this._fadeInOutEditor.container);
 	private readonly _transitionSelect: HTMLSelectElement = buildOptions(select(), Config.transitions.map(transition=>transition.name));
 	private readonly _transitionRow: HTMLDivElement = div({class: "selectRow"}, span({class: "tip", onclick: ()=>this._openPrompt("transition")}, "Transition:"), div({class: "selectContainer"}, this._transitionSelect));
-	private readonly _effectsSelect: HTMLSelectElement = select(option({selected: true, disabled: true, hidden: false})); // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
+	private readonly _effectsSelect: HTMLSelectElement = select(option({selected: true, disabled: true, hidden: hideSelectMenuTitlesInOptions}));
 	private readonly _eqFilterEditor: FilterEditor = new FilterEditor(this.doc);
 	private readonly _eqFilterRow: HTMLElement = div({class: "selectRow"}, span({class: "tip", onclick: ()=>this._openPrompt("eqFilter")}, "EQ Filter:"), this._eqFilterEditor.container);
 	private readonly _noteFilterEditor: FilterEditor = new FilterEditor(this.doc, true);
@@ -511,8 +514,8 @@ export class SongEditor {
 	
 	constructor(beepboxEditorContainer: HTMLElement) {
 		this.doc.notifier.watch(this.whenUpdated);
-		new MidiInputHandler(this.doc);
-		window.addEventListener("resize", this.whenUpdated);
+		
+		window.addEventListener("resize", this._whenResized);
 		window.requestAnimationFrame(this.updatePlayButton);
 		
 		if (!("share" in navigator)) {
@@ -528,6 +531,7 @@ export class SongEditor {
 		this._rhythmSelect.appendChild(optgroup({label: "Edit"},
 			option({value: "forceRhythm"}, "Snap Notes To Rhythm"),
 		));
+		this._tempoSlider.container.style.flex = "1";
 		
 		this._phaseModGroup.appendChild(div({class: "selectRow", style: `color: ${ColorConfig.secondaryText}; height: 1em; margin-top: 0.5em;`},
 			div({style: "margin-right: .1em; visibility: hidden;"}, 1 + "."),
@@ -655,11 +659,7 @@ export class SongEditor {
 			autoPlayOption.setAttribute("hidden", "");
 		}
 		
-		if (window.screen.availWidth < 710 || window.screen.availHeight < 710) {
-			const layoutOption: HTMLOptionElement = <HTMLOptionElement> this._optionsMenu.querySelector("[value=layout]");
-			layoutOption.disabled = true;
-			layoutOption.setAttribute("hidden", "");
-		}
+		this._updateLayoutOption();
 		
 		beepboxEditorContainer.appendChild(this.mainLayer);
 		this.whenUpdated();
@@ -690,6 +690,22 @@ export class SongEditor {
 		
 		if ("serviceWorker" in navigator) {
 			navigator.serviceWorker.register("/service_worker.js", {updateViaCache: "all", scope: "/"}).catch(() => {});
+		}
+	}
+	
+	private _whenResized = (): void => {
+		this._updateLayoutOption();
+		this.whenUpdated();
+	}
+	
+	private _updateLayoutOption(): void {
+		const layoutOption: HTMLOptionElement = <HTMLOptionElement> this._optionsMenu.querySelector("[value=layout]");
+		if (window.screen.availWidth < 710 || window.screen.availHeight < 710) {
+			layoutOption.disabled = true;
+			layoutOption.setAttribute("hidden", "");
+		} else {
+			layoutOption.disabled = false;
+			layoutOption.removeAttribute("hidden");
 		}
 	}
 	
@@ -808,8 +824,9 @@ export class SongEditor {
 			this._patternEditorNext.container.style.display = "";
 			this._patternEditorPrev.render();
 			this._patternEditorNext.render();
-			this._zoomInButton.style.display = "";
-			this._zoomOutButton.style.display = "";
+			const isDrumChannel: boolean = this.doc.song.getChannelIsNoise(this.doc.channel);
+			this._zoomInButton.style.display = isDrumChannel ? "none" : "";
+			this._zoomOutButton.style.display = isDrumChannel ? "none" : "";
 			this._zoomInButton.style.right = prefs.showScrollBar ? "24px" : "4px";
 			this._zoomOutButton.style.right = prefs.showScrollBar ? "24px" : "4px";
 		} else {
@@ -824,14 +841,14 @@ export class SongEditor {
 		
 		const optionCommands: ReadonlyArray<string> = [
 			(prefs.autoPlay ? "✓ " : "　") + "Auto Play on Load",
-			(prefs.autoFollow ? "✓ " : "　") + "Show And Play The Same Bar",
+			(prefs.autoFollow ? "✓ " : "　") + "Automatically View Current Bar",
 			(prefs.enableNotePreview ? "✓ " : "　") + "Hear Preview of Added Notes",
 			(prefs.showLetters ? "✓ " : "　") + "Show Piano Keys",
 			(prefs.showFifth ? "✓ " : "　") + 'Highlight "Fifth" of Song Key',
 			(prefs.notesOutsideScale ? "✓ " : "　") + "Allow Adding Notes Not in Scale",
 			(prefs.defaultScale == this.doc.song.scale ? "✓ " : "　") + "Use Current Scale as Default",
 			(prefs.showChannels ? "✓ " : "　") + "Show Notes From All Channels",
-			(prefs.showScrollBar ? "✓ " : "　") + "Show Octave Scroll Bar",
+			(prefs.showScrollBar ? "✓ " : "　") + "Show Octave Scrollbar",
 			(prefs.alwaysShowSettings ? "✓ " : "　") + "Customize All Instruments",
 			(prefs.instrumentCopyPaste ? "✓ " : "　") + "Instrument Copy/Paste Buttons",
 			(prefs.enableChannelMuting ? "✓ " : "　") + "Enable Channel Muting",
@@ -975,7 +992,7 @@ export class SongEditor {
 			}
 			if (instrument.type == InstrumentType.pwm || instrument.type == InstrumentType.supersaw) {
 				this._pulseWidthRow.style.display = "";
-				this._pulseWidthSlider.input.title = prettyNumber(getPulseWidthRatio(instrument.pulseWidth) * 100) + "%";
+				this._pulseWidthSlider.container.title = prettyNumber(getPulseWidthRatio(instrument.pulseWidth) * 100) + "%";
 				this._pulseWidthSlider.updateValue(instrument.pulseWidth);
 			} else {
 				this._pulseWidthRow.style.display = "none";
@@ -998,7 +1015,7 @@ export class SongEditor {
 			if (effectsIncludePitchShift(instrument.effects)) {
 				this._pitchShiftRow.style.display = "";
 				this._pitchShiftSlider.updateValue(instrument.pitchShift);
-				this._pitchShiftSlider.input.title = (instrument.pitchShift - Config.pitchShiftCenter) + " semitone(s)";
+				this._pitchShiftSlider.container.title = (instrument.pitchShift - Config.pitchShiftCenter) + " semitone(s)";
 				for (const marker of this._pitchShiftFifthMarkers) {
 					marker.style.display = prefs.showFifth ? "" : "none";
 				}
@@ -1009,7 +1026,7 @@ export class SongEditor {
 			if (effectsIncludeDetune(instrument.effects)) {
 				this._detuneRow.style.display = "";
 				this._detuneSlider.updateValue(instrument.detune);
-				this._detuneSlider.input.title = (Synth.detuneToCents(instrument.detune - Config.detuneCenter)) + " cent(s)";
+				this._detuneSlider.container.title = (Synth.detuneToCents(instrument.detune - Config.detuneCenter)) + " cent(s)";
 			} else {
 				this._detuneRow.style.display = "none";
 			}
@@ -1064,7 +1081,7 @@ export class SongEditor {
 				this._echoSustainSlider.updateValue(instrument.echoSustain);
 				this._echoDelayRow.style.display = "";
 				this._echoDelaySlider.updateValue(instrument.echoDelay);
-				this._echoDelaySlider.input.title = (Math.round((instrument.echoDelay + 1) * Config.echoDelayStepTicks / (Config.ticksPerPart * Config.partsPerBeat) * 1000) / 1000) + " beat(s)";
+				this._echoDelaySlider.container.title = (Math.round((instrument.echoDelay + 1) * Config.echoDelayStepTicks / (Config.ticksPerPart * Config.partsPerBeat) * 1000) / 1000) + " beat(s)";
 			} else {
 				this._echoSustainRow.style.display = "none";
 				this._echoDelayRow.style.display = "none";
@@ -1945,7 +1962,17 @@ export class SongEditor {
 				(<any>navigator).share({ url: new URL("#" + this.doc.song.toBase64String(), location.href).href });
 				break;
 			case "shortenUrl":
-				window.open("https://tinyurl.com/api-create.php?url=" + encodeURIComponent(new URL("#" + this.doc.song.toBase64String(), location.href).href));
+				const songUrl: string = new URL("#" + this.doc.song.toBase64String(), location.href).href;
+				if (songUrl.length <= 5000) {
+					// is.gd supports URLs up to 5000 characters.
+					window.open("https://is.gd/create.php?url=" + encodeURIComponent(songUrl));
+				} else if (songUrl.length <= 15000) {
+					// tinyurl supports URLs up to 15000 characters. However, this API is deprecated,
+					// and their other API's free tier only allows 100 shortened links per month. :(
+					window.open("https://tinyurl.com/api-create.php?url=" + encodeURIComponent(songUrl));
+				} else {
+					window.alert("Sorry, it looks like this song's URL is too long. The URL shortener service only supports URLs up to 15000 characters, and your song's URL is " + songUrl.length + " characters long. Try https://pastelink.net/ instead?");
+				}
 				break;
 			case "viewPlayer":
 				location.href = "player/#song=" + this.doc.song.toBase64String();

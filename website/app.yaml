@@ -1,6 +1,4 @@
-runtime: python27
-api_version: 1
-threadsafe: true
+runtime: python313
 
 default_expiration: "1h"
 
@@ -29,6 +27,13 @@ handlers:
 - url: /2_3/beepbox_offline\.html
   static_files: 2_3/beepbox_offline.html
   upload: 2_3/beepbox_offline\.html
+  mime_type: text/html; charset=UTF-8
+  http_headers:
+    Content-Disposition: "attachment; filename=beepbox_offline.html"
+
+- url: /3_0/beepbox_offline\.html
+  static_files: 3_0/beepbox_offline.html
+  upload: 3_0/beepbox_offline\.html
   mime_type: text/html; charset=UTF-8
   http_headers:
     Content-Disposition: "attachment; filename=beepbox_offline.html"
